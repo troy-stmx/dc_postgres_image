@@ -6,7 +6,8 @@
 #   1. Initialize PostgreSQL data directory.
 #   2. Generate PostgreSQL configuration from environment variables.
 #   3. Create the application user and database.
-#   4. Install the VectorChord extension, which installs pgvector via CASCADE.
+#   4. Install the VectorChord extension (which installs pgvector via CASCADE)
+#      and the zhparser Chinese full-text search extension.
 #   5. Optionally run a post-setup command for one-off maintenance tasks.
 #   6. Optionally start SSH for development/debugging.
 #   7. Keep PostgreSQL running in the foreground lifecycle.
@@ -136,6 +137,12 @@ setup_database() {
   log "Installing extension: vchord CASCADE"
   su - "${PG_SYS_USER}" -c "${PG_BIN}/psql -h ${PG_HOST} -p ${PG_PORT} -d ${PG_DB} -c 'CREATE EXTENSION IF NOT EXISTS vchord CASCADE'"
   ok "Extensions installed"
+
+  log "Installing extension: zhparser (Chinese text search)"
+  su - "${PG_SYS_USER}" -c "${PG_BIN}/psql -h ${PG_HOST} -p ${PG_PORT} -d ${PG_DB} -c 'CREATE EXTENSION IF NOT EXISTS zhparser'"
+  su - "${PG_SYS_USER}" -c "${PG_BIN}/psql -h ${PG_HOST} -p ${PG_PORT} -d ${PG_DB} -c \"CREATE TEXT SEARCH CONFIGURATION IF NOT EXISTS chinese_zh (PARSER = zhparser)\""
+  su - "${PG_SYS_USER}" -c "${PG_BIN}/psql -h ${PG_HOST} -p ${PG_PORT} -d ${PG_DB} -c \"ALTER TEXT SEARCH CONFIGURATION chinese_zh ADD MAPPING FOR n,v,a,i,e,l WITH simple\""
+  ok "zhparser and Chinese text search configuration installed"
 }
 
 run_post_setup_cmd() {

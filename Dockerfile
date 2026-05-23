@@ -6,6 +6,8 @@ FROM debian:bookworm AS build
 ARG POSTGRES_VERSION=16.11
 ARG PGVECTOR_VERSION=0.8.0
 ARG VCHORD_VERSION=1.1.1
+ARG SCWS_VERSION=1.2.3
+ARG ZHPARSER_VERSION=2.3
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -21,6 +23,7 @@ RUN apt update \
     build-essential ninja-build git curl wget \
     bison flex libxslt1-dev libzstd-dev libicu-dev libkrb5-dev libedit-dev \
     pkg-config gettext locales clang-16 libclang-16-dev zlib1g-dev \
+    autoconf automake libtool \
   && apt clean \
   && rm -rf /var/lib/apt/lists/*
 
@@ -63,6 +66,33 @@ RUN tmpdir=$(mktemp -d) \
   && rm -rf "$tmpdir" \
   && rm -rf "$HOME/.cargo" "$HOME/.rustup"
 
+# Build scws (Simple Chinese Word Segmentation)
+RUN tmpdir=$(mktemp -d) \
+  && cd "$tmpdir" \
+  && git clone --branch ${SCWS_VERSION} --single-branch --depth 1 https://github.com/hightman/scws.git \
+  && cd scws \
+  && touch README \
+  && aclocal \
+  && autoconf \
+  && autoheader \
+  && libtoolize \
+  && automake --add-missing \
+  && ./configure --prefix=/usr/local \
+  && make -j"$(nproc)" \
+  && make install \
+  && cd /tmp \
+  && rm -rf "$tmpdir"
+
+# Build zhparser (Chinese text search parser for PostgreSQL)
+RUN tmpdir=$(mktemp -d) \
+  && cd "$tmpdir" \
+  && git clone --branch v${ZHPARSER_VERSION} --single-branch --depth 1 https://github.com/amutu/zhparser.git \
+  && cd zhparser \
+  && make -j"$(nproc)" PG_CONFIG=/usr/local/pgsql/bin/pg_config SCWS_HOME=/usr/local \
+  && make install PG_CONFIG=/usr/local/pgsql/bin/pg_config SCWS_HOME=/usr/local \
+  && cd /tmp \
+  && rm -rf "$tmpdir"
+
 # ============================================================
 # Stage 2: Runtime image without the build toolchain
 # ============================================================
@@ -72,7 +102,7 @@ FROM debian:bookworm AS runtime
 
 LABEL maintainer="Troy Liu <troyliu0105@outlook.com>"
 LABEL org.opencontainers.image.title="dc-postgres-image"
-LABEL org.opencontainers.image.description="PostgreSQL runtime image with pgvector and VectorChord for Data Closing"
+LABEL org.opencontainers.image.description="PostgreSQL runtime image with pgvector, VectorChord and zhparser for Data Closing"
 LABEL org.opencontainers.image.source="https://github.com/troyliu0105/dc_postgres_image"
 
 ARG PYTHON_VERSION=3.11
@@ -110,6 +140,11 @@ RUN apt update \
 
 # Copy compiled PostgreSQL binaries and extensions from the build stage
 COPY --from=build /usr/local/pgsql /usr/local/pgsql
+
+# Copy scws runtime libraries and configure ldconfig
+COPY --from=build /usr/local/lib/libscws.* /usr/local/lib/
+RUN echo "/usr/local/lib" > /etc/ld.so.conf.d/usr-local-lib.conf \
+  && ldconfig
 
 COPY --from=uv-bin /uv /usr/local/bin/uv
 

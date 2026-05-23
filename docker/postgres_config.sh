@@ -268,6 +268,15 @@ autovacuum_analyze_scale_factor = 0.05
 # -----------------------------------------------------------------------------
 shared_preload_libraries = 'vchord'
 
+# -----------------------------------------------------------------------------
+# zhparser settings (Chinese full-text search parser)
+# -----------------------------------------------------------------------------
+# punctuation_ignore: ignore punctuation tokens.
+zhparser.punctuation_ignore = on
+
+# seg_with_duality: segment loose single characters with duality.
+zhparser.seg_with_duality = on
+
 EOF
 
   log "postgresql.conf generated"

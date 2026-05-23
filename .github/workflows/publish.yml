@@ -55,10 +55,10 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=sha
-            type=raw,value=pg16.11-pgvector0.8.0-vchord1.1.1,enable={{is_default_branch}}
+            type=raw,value=pg16.11-pgvector0.8.0-vchord1.1.1-zhparser2.3,enable={{is_default_branch}}
           labels: |
             org.opencontainers.image.title=dc-postgres-image
-            org.opencontainers.image.description=PostgreSQL runtime image with pgvector and VectorChord for Data Closing
+            org.opencontainers.image.description=PostgreSQL runtime image with pgvector, VectorChord and zhparser for Data Closing
 
       - name: Build and push Docker image
         id: build
