@@ -141,7 +141,7 @@ setup_database() {
   log "Installing extension: zhparser (Chinese text search)"
   su - "${PG_SYS_USER}" -c "${PG_BIN}/psql -h ${PG_HOST} -p ${PG_PORT} -d ${PG_DB} -c 'CREATE EXTENSION IF NOT EXISTS zhparser'"
   su - "${PG_SYS_USER}" -c "${PG_BIN}/psql -h ${PG_HOST} -p ${PG_PORT} -d ${PG_DB} -c 'DO \$do\$ BEGIN CREATE TEXT SEARCH CONFIGURATION chinese_zh (PARSER = zhparser); EXCEPTION WHEN others THEN NULL; END \$do\$'"
-  su - "${PG_SYS_USER}" -c "${PG_BIN}/psql -h ${PG_HOST} -p ${PG_PORT} -d ${PG_DB} -c \"ALTER TEXT SEARCH CONFIGURATION chinese_zh ADD MAPPING FOR n,v,a,i,e,l WITH simple\""
+  su - "${PG_SYS_USER}" -c "${PG_BIN}/psql -h ${PG_HOST} -p ${PG_PORT} -d ${PG_DB} -c 'DO \$do\$ BEGIN ALTER TEXT SEARCH CONFIGURATION chinese_zh ADD MAPPING FOR n,v,a,i,e,l WITH simple; EXCEPTION WHEN others THEN NULL; END \$do\$'"
   ok "zhparser and Chinese text search configuration installed"
 }
 
